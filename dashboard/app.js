@@ -579,7 +579,7 @@ async function refreshData() {
       fetchJsonWithFallback(`${API_BASE}/admin/devices?t=${timestamp}`, {devices: []}),
       fetchJsonWithFallback(`${API_BASE}/admin/metrics/captures_daily?t=${timestamp}`, {days: []}),
       fetchJsonWithFallback(`${API_BASE}/admin/metrics/stand?t=${timestamp}`, {}),
-      fetchJsonWithFallback(`${API_BASE}/admin/captures?limit=5&t=${timestamp}`, {captures: []}),
+      fetchJsonWithFallback(`${API_BASE}/admin/captures?limit=5&device_id=pi-camera&t=${timestamp}`, {captures: []}),
       fetchJsonWithFallback(`${API_BASE}/admin/captures?limit=20&device_id=dairy-cam&t=${timestamp}`, {captures: []}),
     ]);
     
