@@ -3,3 +3,9 @@ __pycache__/
 .venv/
 backend/data/
 .env.deploy
+env.deploy.example
+stream/.env
+.claude/
+*.db
+*.db-shm
+*.db-wal

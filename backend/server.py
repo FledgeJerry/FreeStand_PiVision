@@ -20,6 +20,7 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
 ROOT = Path(__file__).resolve().parent
+DASHBOARD_DIR = ROOT.parent / "dashboard"
 DATA_DIR = ROOT / "data"
 STAGING_DIR = DATA_DIR / "staging"
 EVENTS_DIR = DATA_DIR / "events"
@@ -234,6 +235,99 @@ def _collect_database_metrics(conn: sqlite3.Connection) -> dict:
     }
 
 
+def _collect_stand_metrics(conn: sqlite3.Connection) -> dict:
+    import zoneinfo
+    eastern = zoneinfo.ZoneInfo("America/New_York")
+    now_eastern = datetime.now(eastern)
+    utc_offset_hours = int(now_eastern.utcoffset().total_seconds() / 3600)
+    offset_str = f"{utc_offset_hours:+d} hours"
+
+    today = now_eastern.date().isoformat()
+    week_start = (now_eastern.date() - timedelta(days=6)).isoformat()
+
+    interactions_today = conn.execute(
+        "SELECT COUNT(*) as cnt FROM events WHERE event_type='interaction_detected' AND DATE(datetime(event_ts, ?))==?",
+        (offset_str, today),
+    ).fetchone()["cnt"]
+
+    interactions_week = conn.execute(
+        "SELECT COUNT(*) as cnt FROM events WHERE event_type='interaction_detected' AND DATE(datetime(event_ts, ?))>=?",
+        (offset_str, week_start),
+    ).fetchone()["cnt"]
+
+    interactions_total = conn.execute(
+        "SELECT COUNT(*) as cnt FROM events WHERE event_type='interaction_detected'",
+    ).fetchone()["cnt"]
+
+    last_week_end = (now_eastern.date() - timedelta(days=7)).isoformat()
+    last_week_start = (now_eastern.date() - timedelta(days=13)).isoformat()
+    interactions_last_week = conn.execute(
+        "SELECT COUNT(*) as cnt FROM events WHERE event_type='interaction_detected' AND DATE(datetime(event_ts, ?)) BETWEEN ? AND ?",
+        (offset_str, last_week_start, last_week_end),
+    ).fetchone()["cnt"]
+
+    last_stock = conn.execute(
+        "SELECT event_ts, note FROM events WHERE event_type='stock_changed' ORDER BY event_ts DESC LIMIT 1",
+    ).fetchone()
+
+    last_interaction = conn.execute(
+        "SELECT event_ts FROM events WHERE event_type='interaction_detected' ORDER BY event_ts DESC LIMIT 1",
+    ).fetchone()
+
+    daily_rows = conn.execute(
+        """
+        SELECT
+            DATE(datetime(event_ts, ?)) as day,
+            SUM(CASE WHEN CAST(strftime('%H', datetime(event_ts, ?)) AS INTEGER) < 6 THEN 1 ELSE 0 END) as night,
+            SUM(CASE WHEN CAST(strftime('%H', datetime(event_ts, ?)) AS INTEGER) BETWEEN 6 AND 11 THEN 1 ELSE 0 END) as morning,
+            SUM(CASE WHEN CAST(strftime('%H', datetime(event_ts, ?)) AS INTEGER) BETWEEN 12 AND 17 THEN 1 ELSE 0 END) as afternoon,
+            SUM(CASE WHEN CAST(strftime('%H', datetime(event_ts, ?)) AS INTEGER) >= 18 THEN 1 ELSE 0 END) as evening,
+            COUNT(*) as count
+        FROM events
+        WHERE event_type='interaction_detected' AND DATE(datetime(event_ts, ?)) >= ?
+        GROUP BY day ORDER BY day ASC
+        """,
+        (offset_str, offset_str, offset_str, offset_str, offset_str, offset_str, week_start),
+    ).fetchall()
+
+    hourly_rows = conn.execute(
+        """
+        SELECT CAST(strftime('%H', datetime(event_ts, ?)) AS INTEGER) as hour, COUNT(*) as count
+        FROM events
+        WHERE event_type='interaction_detected' AND DATE(datetime(event_ts, ?))=?
+        GROUP BY hour ORDER BY hour ASC
+        """,
+        (offset_str, offset_str, today),
+    ).fetchall()
+    hourly = {row["hour"]: row["count"] for row in hourly_rows}
+    hourly_series = [{"hour": h, "count": hourly.get(h, 0)} for h in range(24)]
+
+    return {
+        "interactions_today": interactions_today,
+        "interactions_week": interactions_week,
+        "interactions_last_week": interactions_last_week,
+        "interactions_total": interactions_total,
+        "last_stock_change": dict(last_stock) if last_stock else None,
+        "last_interaction": last_interaction["event_ts"] if last_interaction else None,
+        "daily_interactions": [{"day": r["day"], "count": r["count"], "night": r["night"], "morning": r["morning"], "afternoon": r["afternoon"], "evening": r["evening"]} for r in daily_rows],
+        "hourly_today": hourly_series,
+    }
+
+
+def _collect_captures_daily(conn: sqlite3.Connection, days: int = 7) -> list[dict]:
+    rows = conn.execute(
+        """
+        SELECT DATE(received_ts) as day, COUNT(*) as count
+        FROM captures
+        WHERE received_ts >= DATE('now', ?)
+        GROUP BY day
+        ORDER BY day ASC
+        """,
+        (f"-{days} days",),
+    ).fetchall()
+    return [{"day": row["day"], "count": row["count"]} for row in rows]
+
+
 def _directory_status(name: str, path: Path) -> dict[str, str | bool]:
     exists = path.exists()
     writable = exists and os.access(path, os.W_OK)
@@ -368,6 +462,9 @@ class PiVisionHandler(BaseHTTPRequestHandler):
         if parsed.path == "/api/v1/admin/events":
             self._handle_admin_events(parsed)
             return
+        if parsed.path == "/api/v1/admin/captures":
+            self._handle_admin_captures(parsed)
+            return
         if parsed.path == "/api/v1/admin/devices":
             self._handle_admin_devices()
             return
@@ -376,6 +473,9 @@ class PiVisionHandler(BaseHTTPRequestHandler):
             return
         if parsed.path.startswith("/static/"):
             self._handle_static(parsed.path)
+            return
+        if parsed.path in ("/", "/app.js", "/styles.css"):
+            self._handle_dashboard(parsed.path)
             return
         self._json(HTTPStatus.NOT_FOUND, {"ok": False, "error": "not found"})
 
@@ -387,7 +487,10 @@ class PiVisionHandler(BaseHTTPRequestHandler):
         if parsed.path == "/api/v1/ingest/heartbeat":
             self._handle_heartbeat()
             return
-            self._json(HTTPStatus.NOT_FOUND, {"ok": False, "error": "not found"})
+        if parsed.path == "/api/v1/ingest/event":
+            self._handle_ingest_event()
+            return
+        self._json(HTTPStatus.NOT_FOUND, {"ok": False, "error": "not found"})
 
     def do_OPTIONS(self) -> None:  # noqa: N802
         self.send_response(HTTPStatus.NO_CONTENT)
@@ -533,6 +636,34 @@ class PiVisionHandler(BaseHTTPRequestHandler):
 
         self._json(HTTPStatus.OK, {"ok": True, "last_seen": now_iso()})
 
+    def _handle_ingest_event(self) -> None:
+        try:
+            payload = self._read_json()
+        except json.JSONDecodeError:
+            self._json(HTTPStatus.BAD_REQUEST, {"ok": False, "error": "invalid json"})
+            return
+
+        required = ["device_id", "event_type", "event_ts"]
+        valid, error = require_fields(payload, required)
+        if not valid:
+            self._json(HTTPStatus.BAD_REQUEST, {"ok": False, "error": error})
+            return
+
+        with connect_db() as conn:
+            cursor = conn.execute(
+                "INSERT INTO events (device_id, event_type, event_ts, confidence, note) VALUES (?, ?, ?, ?, ?)",
+                (
+                    payload["device_id"],
+                    payload["event_type"],
+                    payload["event_ts"],
+                    payload.get("confidence"),
+                    payload.get("note"),
+                ),
+            )
+            event_id = cursor.lastrowid
+
+        self._json(HTTPStatus.OK, {"ok": True, "event_id": event_id})
+
     def _handle_device_config(self, parsed) -> None:
         params = parse_qs(parsed.query)
         device_id = params.get("device_id", [None])[0]
@@ -571,7 +702,7 @@ class PiVisionHandler(BaseHTTPRequestHandler):
                 SELECT e.id, e.device_id, e.event_type, e.event_ts, e.note, e.confidence,
                        c.storage_uri, c.width, c.height, c.capture_ts
                 FROM events e
-                JOIN captures c ON c.id = e.capture_id
+                LEFT JOIN captures c ON c.id = e.capture_id
                 ORDER BY e.event_ts DESC
                 LIMIT ?
                 """,
@@ -593,6 +724,48 @@ class PiVisionHandler(BaseHTTPRequestHandler):
             print(f"Latest event: {events[0]['event_ts']} - {events[0]['event_type']}")
         
         self._json(HTTPStatus.OK, {"ok": True, "events": events})
+
+    def _handle_admin_captures(self, parsed) -> None:
+        params = parse_qs(parsed.query)
+        try:
+            limit = int(params.get("limit", [5])[0])
+        except ValueError:
+            limit = 5
+        device_id = params.get("device_id", [None])[0]
+        with connect_db() as conn:
+            if device_id:
+                rows = conn.execute(
+                    """
+                    SELECT id, device_id, capture_ts, received_ts, width, height, storage_uri
+                    FROM captures
+                    WHERE storage_uri IS NOT NULL AND device_id = ?
+                    ORDER BY received_ts DESC
+                    LIMIT ?
+                    """,
+                    (device_id, limit),
+                ).fetchall()
+            else:
+                rows = conn.execute(
+                    """
+                    SELECT id, device_id, capture_ts, received_ts, width, height, storage_uri
+                    FROM captures
+                    WHERE storage_uri IS NOT NULL
+                    ORDER BY received_ts DESC
+                    LIMIT ?
+                    """,
+                    (limit,),
+                ).fetchall()
+        captures = []
+        for row in rows:
+            cap = dict(row)
+            if cap["storage_uri"]:
+                try:
+                    rel = Path(cap["storage_uri"]).relative_to(DATA_DIR)
+                    cap["static_url"] = f"/static/{rel}"
+                except ValueError:
+                    cap["static_url"] = None
+            captures.append(cap)
+        self._json(HTTPStatus.OK, {"ok": True, "captures": captures})
 
     def _handle_admin_devices(self) -> None:
         with connect_db() as conn:
@@ -623,6 +796,15 @@ class PiVisionHandler(BaseHTTPRequestHandler):
 
             if metric_type == "system":
                 self._json(HTTPStatus.OK, {"ok": True, **_system_metrics()})
+                return
+
+            if metric_type == "captures_daily":
+                daily = _collect_captures_daily(conn)
+                self._json(HTTPStatus.OK, {"ok": True, "days": daily})
+                return
+
+            if metric_type == "stand":
+                self._json(HTTPStatus.OK, {"ok": True, **_collect_stand_metrics(conn)})
                 return
 
         self._json(HTTPStatus.NOT_FOUND, {"ok": False, "error": "unknown metrics group"})
@@ -686,6 +868,30 @@ class PiVisionHandler(BaseHTTPRequestHandler):
             
         except Exception as exc:
             self._json(HTTPStatus.INTERNAL_SERVER_ERROR, {"ok": False, "error": f"static serve error: {exc}"})
+
+
+    def _handle_dashboard(self, path: str) -> None:
+        filename_map = {
+            "/": "index.html",
+            "/app.js": "app.js",
+            "/styles.css": "styles.css",
+        }
+        content_type_map = {
+            "index.html": "text/html; charset=utf-8",
+            "app.js": "application/javascript; charset=utf-8",
+            "styles.css": "text/css; charset=utf-8",
+        }
+        filename = filename_map[path]
+        file_path = DASHBOARD_DIR / filename
+        if not file_path.exists():
+            self._json(HTTPStatus.NOT_FOUND, {"ok": False, "error": "dashboard file not found"})
+            return
+        content = file_path.read_bytes()
+        self.send_response(HTTPStatus.OK)
+        self.send_header("Content-Type", content_type_map[filename])
+        self.send_header("Content-Length", str(len(content)))
+        self.end_headers()
+        self.wfile.write(content)
 
 
 def _calculate_minutes_since(iso_timestamp: str) -> int:

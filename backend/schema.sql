@@ -45,7 +45,7 @@ CREATE TABLE IF NOT EXISTS jobs (
 
 CREATE TABLE IF NOT EXISTS events (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  capture_id INTEGER NOT NULL,
+  capture_id INTEGER,
   device_id TEXT NOT NULL,
   event_type TEXT NOT NULL,
   event_ts TEXT NOT NULL,

@@ -19,16 +19,19 @@ try:
 except ImportError:
     shutil = None  # type: ignore[assignment]
 
-LIBCAMERA_STILL = (
-    shutil.which("libcamera-still") if shutil is not None else None
-)
+LIBCAMERA_STILL = None
+for candidate in ["rpicam-still", "libcamera-still"]:
+    LIBCAMERA_STILL = shutil.which(candidate) if shutil is not None else None
+    if LIBCAMERA_STILL:
+        break
 if not LIBCAMERA_STILL:
-    candidate = "/usr/local/bin/libcamera-still"
-    if os.path.exists(candidate):
-        LIBCAMERA_STILL = candidate
+    for candidate in ["/usr/bin/rpicam-still", "/usr/local/bin/libcamera-still"]:
+        if os.path.exists(candidate):
+            LIBCAMERA_STILL = candidate
+            break
 
 if not LIBCAMERA_STILL:
-    raise SystemExit("libcamera-still not found; install libcamera-apps (apt install libcamera-apps).")
+    raise SystemExit("rpicam-still not found; install libcamera-apps (apt install libcamera-apps).")
 
 
 def iso_now() -> str:

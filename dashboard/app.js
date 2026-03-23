@@ -1,4 +1,6 @@
-const API_BASE = "http://localhost:8080/api/v1";
+const _isLocal = window.location.protocol === "file:";
+const API_BASE = _isLocal ? "http://192.168.1.153:8080/api/v1" : "/api/v1";
+const STATIC_BASE = _isLocal ? "http://192.168.1.153:8080" : "";
 const REFRESH_INTERVAL_MS = 5000;
 
 function createEmptySeries() {
@@ -41,6 +43,10 @@ function createEmptyDashboardData() {
     devices: [],
     events: [],
     alerts: [],
+    capturesDaily: [],
+    stand: null,
+    recentCaptures: [],
+    dairyCamCaptures: [],
   };
 }
 
@@ -178,6 +184,294 @@ function renderEventGallery(events) {
     .join("");
 }
 
+function renderCaptureStats(database, ingest, daily) {
+  const total = database.captures ?? 0;
+  const lastHour = ingest.success60m ?? 0;
+  const events = database.events ?? 0;
+  const rate = lastHour > 0 ? (lastHour / 60).toFixed(1) : "0.0";
+
+  renderStat("#capture-stats", [
+    ["Total photos", total.toLocaleString()],
+    ["Last 60 min", lastHour],
+    ["Per minute", rate],
+    ["Events logged", events.toLocaleString()],
+  ]);
+
+  renderCaptureTrend(daily);
+  renderCaptureDailyBreakdown(daily);
+}
+
+function renderCaptureTrend(daily) {
+  const indicator = el("#capture-trend");
+  if (!daily || daily.length < 2) {
+    indicator.textContent = "";
+    return;
+  }
+  const today = daily[daily.length - 1].count;
+  const yesterday = daily[daily.length - 2].count;
+  if (yesterday === 0) {
+    indicator.textContent = "";
+    return;
+  }
+  const pct = Math.round(((today - yesterday) / yesterday) * 100);
+  if (pct > 0) {
+    indicator.textContent = `▲ ${pct}% vs yesterday`;
+    indicator.className = "trend-indicator trend-up";
+  } else if (pct < 0) {
+    indicator.textContent = `▼ ${Math.abs(pct)}% vs yesterday`;
+    indicator.className = "trend-indicator trend-down";
+  } else {
+    indicator.textContent = "— same as yesterday";
+    indicator.className = "trend-indicator";
+  }
+}
+
+function renderCaptureDailyBreakdown(daily) {
+  const container = el("#capture-daily");
+  if (!daily || !daily.length) {
+    container.innerHTML = `<p class="empty-state">No daily data yet.</p>`;
+    return;
+  }
+  const max = Math.max(...daily.map((d) => d.count), 1);
+  container.innerHTML = daily
+    .map((d) => {
+      const pct = Math.max(4, Math.round((d.count / max) * 100));
+      const label = new Date(d.day + "T00:00:00").toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+      return `
+        <div class="daily-row">
+          <span class="daily-label">${label}</span>
+          <div class="daily-bar-wrap">
+            <div class="daily-bar" style="width:${pct}%"></div>
+          </div>
+          <span class="daily-count">${d.count}</span>
+        </div>`;
+    })
+    .join("");
+}
+
+function renderStandOverview(stand) {
+  if (!stand) {
+    el("#stand-status-pill").textContent = "No data";
+    el("#stand-status-meta").textContent = "Backend not reachable.";
+    return;
+  }
+
+  // Status pill — derived from last stock change note or interaction recency
+  const pill = el("#stand-status-pill");
+  const meta = el("#stand-status-meta");
+  const lastStock = stand.last_stock_change;
+  const lastInteraction = stand.last_interaction;
+
+  if (lastStock) {
+    const note = (lastStock.note ?? "").toLowerCase();
+    if (note.includes("stock: full") || note.includes("restock") || note.includes("added") || note.includes("filled")) {
+      pill.textContent = "Well stocked";
+      pill.className = "stand-status-pill status-good";
+    } else if (note.includes("stock: half")) {
+      pill.textContent = "Half full";
+      pill.className = "stand-status-pill status-good";
+    } else if (note.includes("stock: low")) {
+      pill.textContent = "Running low";
+      pill.className = "stand-status-pill status-warn";
+    } else if (note.includes("stock: empty") || note.includes("empty") || note.includes("out")) {
+      pill.textContent = "Empty";
+      pill.className = "stand-status-pill status-bad";
+    } else {
+      pill.textContent = "Stock checked";
+      pill.className = "stand-status-pill status-neutral";
+    }
+
+    // Show food items if available
+    const itemsMatch = lastStock.note && lastStock.note.match(/items: ([^)]+)\)/);
+    const foodItems = itemsMatch ? itemsMatch[1] : null;
+    meta.innerHTML = `Last checked: ${formatLocalTime(lastStock.event_ts)}${foodItems ? `<br><span class="food-items">🥫 ${foodItems}</span>` : ""}`;
+  } else if (lastInteraction) {
+    pill.textContent = "Active";
+    pill.className = "stand-status-pill status-neutral";
+    meta.textContent = `Last interaction: ${formatLocalTime(lastInteraction)}`;
+  } else {
+    pill.textContent = "No activity yet";
+    pill.className = "stand-status-pill status-neutral";
+    meta.textContent = "No events recorded.";
+  }
+
+  // Activity stats
+  renderStat("#stand-activity", [
+    ["Today", stand.interactions_today ?? 0],
+    ["This week", stand.interactions_week ?? 0],
+    ["All time", (stand.interactions_total ?? 0).toLocaleString()],
+  ]);
+
+  // Weekly interactions bar chart
+  renderDailyChart("#stand-weekly-chart", stand.daily_interactions ?? []);
+
+  // Hourly chart
+  renderHourlyChart(stand.hourly_today ?? []);
+
+  // Recent activity feed from events
+  renderActivityFeed(dashboardData.events);
+}
+
+function renderDailyChart(selector, daily) {
+  const container = el(selector);
+  if (!daily.length) {
+    container.innerHTML = `<p class="empty-state">No interactions this week.</p>`;
+    return;
+  }
+  const max = Math.max(...daily.map((d) => d.count), 1);
+  const legend = `
+    <div class="daily-legend">
+      <span class="legend-item"><span class="legend-dot night"></span>Midnight–6AM</span>
+      <span class="legend-item"><span class="legend-dot morning"></span>6AM–Noon</span>
+      <span class="legend-item"><span class="legend-dot afternoon"></span>Noon–6PM</span>
+      <span class="legend-item"><span class="legend-dot evening"></span>6PM–Midnight</span>
+    </div>`;
+  const rows = daily.map((d) => {
+    const total = d.count || 0;
+    const nightPct  = total ? Math.round((d.night / total) * 100) : 0;
+    const morningPct = total ? Math.round((d.morning / total) * 100) : 0;
+    const afternoonPct = total ? Math.round((d.afternoon / total) * 100) : 0;
+    const eveningPct = 100 - nightPct - morningPct - afternoonPct;
+    const barWidth = Math.max(4, Math.round((total / max) * 100));
+    const label = new Date(d.day + "T00:00:00").toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+    return `
+      <div class="daily-row">
+        <span class="daily-label">${label}</span>
+        <div class="daily-bar-wrap">
+          <div class="daily-bar-stacked" style="width:${barWidth}%">
+            ${nightPct > 0 ? `<div class="seg night" style="width:${nightPct}%"></div>` : ""}
+            ${morningPct > 0 ? `<div class="seg morning" style="width:${morningPct}%"></div>` : ""}
+            ${afternoonPct > 0 ? `<div class="seg afternoon" style="width:${afternoonPct}%"></div>` : ""}
+            ${eveningPct > 0 ? `<div class="seg evening" style="width:${eveningPct}%"></div>` : ""}
+          </div>
+        </div>
+        <span class="daily-count">${total}</span>
+      </div>`;
+  }).join("");
+  container.innerHTML = legend + rows;
+}
+
+function renderHourlyChart(hourly) {
+  const container = el("#stand-hourly-chart");
+  const max = Math.max(...hourly.map((h) => h.count), 1);
+  container.innerHTML = hourly.map((h) => {
+    const pct = Math.max(2, Math.round((h.count / max) * 100));
+    const label = h.hour === 0 ? "12a" : h.hour < 12 ? `${h.hour}a` : h.hour === 12 ? "12p" : `${h.hour - 12}p`;
+    return `
+      <div class="hourly-col">
+        <div class="hourly-bar-wrap">
+          <div class="hourly-bar" style="height:${pct}%" title="${h.count} interactions"></div>
+        </div>
+        <span class="hourly-label">${label}</span>
+      </div>`;
+  }).join("");
+}
+
+function renderRecentPhotos(captures) {
+  if (!captures.length) return;
+  const latest = captures[0];
+  const container = el("#latest-photo");
+  if (!container) return;
+  container.innerHTML = `
+    <img src="${STATIC_BASE}${latest.static_url}" alt="Latest capture" loading="lazy">
+    <span class="photo-time">${formatLocalTime(latest.capture_ts)}</span>`;
+}
+
+function renderDairyCam(captures, devices) {
+  const latest = el("#dairycam-latest");
+  const grid = el("#dairycam-grid");
+  const status = el("#dairycam-status");
+
+  const device = (devices ?? []).find(d => d.device_id === "dairy-cam");
+  if (status) {
+    renderStat("#dairycam-status", [
+      ["Last Seen", device ? formatLocalTime(device.last_seen) : "Never"],
+      ["RSSI", device?.rssi != null ? `${device.rssi} dBm` : "—"],
+      ["Firmware", device?.fw_version ?? "—"],
+    ]);
+  }
+
+  if (latest) {
+    if (!captures.length) {
+      latest.innerHTML = `<p style="color:#888;padding:1rem 0">No captures yet.</p>`;
+    } else {
+      const c = captures[0];
+      latest.innerHTML = `
+        <img src="${STATIC_BASE}${c.static_url}" alt="Latest dairy cam capture" loading="lazy" style="width:100%;border-radius:6px">
+        <span class="photo-time">${formatLocalTime(c.capture_ts)}</span>`;
+    }
+  }
+
+  if (grid) {
+    grid.innerHTML = captures.slice(1).map(c => `
+      <div class="capture-thumb">
+        <img src="${STATIC_BASE}${c.static_url}" alt="Capture ${c.id}" loading="lazy">
+        <span class="photo-time">${formatLocalTime(c.capture_ts)}</span>
+      </div>`).join("");
+  }
+}
+
+function renderWeeklySummary(stand) {
+  const container = el("#weekly-summary");
+  if (!container || !stand) return;
+
+  const thisWeek = stand.interactions_week ?? 0;
+  const lastWeek = stand.interactions_last_week ?? 0;
+  const daily = stand.daily_interactions ?? [];
+
+  let trend = "—";
+  let trendClass = "";
+  if (lastWeek > 0) {
+    const pct = Math.round(((thisWeek - lastWeek) / lastWeek) * 100);
+    trend = pct > 0 ? `▲ ${pct}% vs last week` : pct < 0 ? `▼ ${Math.abs(pct)}% vs last week` : "Same as last week";
+    trendClass = pct > 0 ? "trend-up" : pct < 0 ? "trend-down" : "";
+  }
+
+  const peakDay = daily.length ? daily.reduce((a, b) => a.count > b.count ? a : b) : null;
+  const peakLabel = peakDay ? new Date(peakDay.day + "T00:00:00").toLocaleDateString(undefined, { weekday: "long" }) : "—";
+
+  const avgDaily = daily.length ? Math.round(thisWeek / daily.length) : 0;
+
+  container.innerHTML = `
+    <div class="weekly-summary-grid">
+      <div class="summary-stat">
+        <div class="label">This week</div>
+        <div class="value">${thisWeek}</div>
+      </div>
+      <div class="summary-stat">
+        <div class="label">Last week</div>
+        <div class="value">${lastWeek}</div>
+      </div>
+      <div class="summary-stat">
+        <div class="label">Daily avg</div>
+        <div class="value">${avgDaily}</div>
+      </div>
+      <div class="summary-stat">
+        <div class="label">Busiest day</div>
+        <div class="value">${peakLabel}</div>
+      </div>
+      <div class="summary-trend ${trendClass}">${trend}</div>
+    </div>`;
+}
+
+function renderActivityFeed(events) {
+  const feed = el("#stand-activity-feed");
+  const recent = events.slice(0, 8);
+  if (!recent.length) {
+    feed.innerHTML = `<li class="empty-state">No recent activity.</li>`;
+    return;
+  }
+  feed.innerHTML = recent.map((e) => {
+    const typeLabel = e.event_type === "interaction_detected" ? "Someone visited" : e.event_type === "stock_changed" ? "Stock changed" : e.event_type;
+    return `
+      <li class="activity-item">
+        <span class="activity-dot ${e.event_type === 'stock_changed' ? 'dot-stock' : 'dot-interaction'}"></span>
+        <span class="activity-label">${typeLabel}</span>
+        <span class="activity-time">${formatLocalTime(e.event_ts)}</span>
+      </li>`;
+  }).join("");
+}
+
 function renderAlerts(alerts) {
   if (!alerts.length) {
     el("#alerts-list").innerHTML = `<li class="empty-state">No alerts at this time.</li>`;
@@ -227,7 +521,7 @@ function formatLocalTime(value) {
   if (Number.isNaN(parsed.getTime())) {
     return value;
   }
-  return parsed.toLocaleString();
+  return parsed.toLocaleString('en-US', { timeZone: 'America/New_York' });
 }
 
 function buildAlerts(data) {
@@ -276,13 +570,17 @@ async function refreshData() {
     // Add timestamp to bypass caching
     const timestamp = Date.now();
     
-    const [systemResp, ingestResp, queueResp, databaseResp, eventsResp, devicesResp] = await Promise.all([
+    const [systemResp, ingestResp, queueResp, databaseResp, eventsResp, devicesResp, capturesDailyResp, standResp, capturesResp, dairyCamResp] = await Promise.all([
       fetchJsonWithFallback(`${API_BASE}/admin/metrics/system?t=${timestamp}`, {cpu: null, memory: null, diskRemainingGb: null, tempC: null, uptime: "—"}),
       fetchJsonWithFallback(`${API_BASE}/admin/metrics/ingest?t=${timestamp}`, {success_60m: 0, failure_60m: 0, avg_latency_ms: 0, series: []}),
       fetchJsonWithFallback(`${API_BASE}/admin/metrics/queue?t=${timestamp}`, {depth: 0, queue: {}}),
       fetchJsonWithFallback(`${API_BASE}/admin/metrics/database?t=${timestamp}`, {connected: true, version: "SQLite", captures: 0, events: 0, jobs: 0, devices: 0, ingestAudit: 0, dbSizeMb: 0, tables: []}),
       fetchJsonWithFallback(`${API_BASE}/admin/events?limit=50&t=${timestamp}`, {events: []}),
       fetchJsonWithFallback(`${API_BASE}/admin/devices?t=${timestamp}`, {devices: []}),
+      fetchJsonWithFallback(`${API_BASE}/admin/metrics/captures_daily?t=${timestamp}`, {days: []}),
+      fetchJsonWithFallback(`${API_BASE}/admin/metrics/stand?t=${timestamp}`, {}),
+      fetchJsonWithFallback(`${API_BASE}/admin/captures?limit=5&t=${timestamp}`, {captures: []}),
+      fetchJsonWithFallback(`${API_BASE}/admin/captures?limit=20&device_id=dairy-cam&t=${timestamp}`, {captures: []}),
     ]);
     
     console.log(`Refreshed data: ${eventsResp.events.length} events, ${databaseResp.captures} captures`);
@@ -325,6 +623,10 @@ async function refreshData() {
 
     dashboardData.events = eventsResp.events ?? [];
     dashboardData.devices = devicesResp.devices ?? [];
+    dashboardData.capturesDaily = capturesDailyResp.days ?? [];
+    dashboardData.stand = standResp.ok ? standResp : null;
+    dashboardData.recentCaptures = capturesResp.captures ?? [];
+    dashboardData.dairyCamCaptures = dairyCamResp.captures ?? [];
     dashboardData.alerts = buildAlerts(dashboardData);
     el("#last-updated").textContent = new Date().toLocaleTimeString();
   } catch (error) {
@@ -357,12 +659,17 @@ function render() {
     ["Dead", dashboardData.queue.dead],
   ]);
 
+  renderStandOverview(dashboardData.stand);
+  renderRecentPhotos(dashboardData.recentCaptures);
+  renderWeeklySummary(dashboardData.stand);
   renderChart(dashboardData.ingest.series);
   renderQueueMeter(dashboardData.queue);
+  renderCaptureStats(dashboardData.database, dashboardData.ingest, dashboardData.capturesDaily);
   renderDatabase(dashboardData.database);
   renderDevices(dashboardData.devices);
   renderEventGallery(dashboardData.events);
   renderAlerts(dashboardData.alerts);
+  renderDairyCam(dashboardData.dairyCamCaptures, dashboardData.devices);
   setOverallStatus(dashboardData);
   } catch (error) {
     console.error("Render error:", error);

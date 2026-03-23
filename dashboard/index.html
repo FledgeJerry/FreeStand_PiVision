@@ -9,8 +9,8 @@
   <body>
     <header class="topbar">
       <div>
-        <h1>PiVision Ops Dashboard</h1>
-        <p class="subtitle">Build / Troubleshoot / Deploy visibility for your Pi gateway</p>
+        <h1>FreeStand Dashboard</h1>
+        <p class="subtitle">Free food stand monitoring &amp; community activity</p>
       </div>
       <div class="topbar-actions">
         <button class="secondary-btn" id="refresh-btn" type="button">Refresh now</button>
@@ -28,15 +28,68 @@
     </section>
 
     <nav class="tabs" role="tablist" aria-label="Dashboard views">
-      <button class="tab active" role="tab" aria-selected="true" aria-controls="tab-system" id="btn-system" data-tab="system">System</button>
+      <button class="tab active" role="tab" aria-selected="true" aria-controls="tab-stand" id="btn-stand" data-tab="stand">Stand Overview</button>
+      <button class="tab" role="tab" aria-selected="false" aria-controls="tab-system" id="btn-system" data-tab="system">System</button>
       <button class="tab" role="tab" aria-selected="false" aria-controls="tab-database" id="btn-database" data-tab="database">Database</button>
       <button class="tab" role="tab" aria-selected="false" aria-controls="tab-events" id="btn-events" data-tab="events">Events</button>
       <button class="tab" role="tab" aria-selected="false" aria-controls="tab-devices" id="btn-devices" data-tab="devices">Devices</button>
       <button class="tab" role="tab" aria-selected="false" aria-controls="tab-alerts" id="btn-alerts" data-tab="alerts">Alerts</button>
+      <button class="tab" role="tab" aria-selected="false" aria-controls="tab-dairycam" id="btn-dairycam" data-tab="dairycam">Dairy Cam</button>
     </nav>
 
     <main>
-      <section class="tab-panel active" id="tab-system" role="tabpanel" aria-labelledby="btn-system">
+      <section class="tab-panel active" id="tab-stand" role="tabpanel" aria-labelledby="btn-stand">
+        <div class="grid stand-grid">
+
+          <!-- Row 1: at-a-glance -->
+          <section class="card stand-status-card">
+            <h2>Stand Status</h2>
+            <div class="stand-status-body">
+              <div class="stand-status-pill" id="stand-status-pill">Unknown</div>
+              <div class="stand-status-meta" id="stand-status-meta"></div>
+            </div>
+            <div class="stats stand-activity-mini" id="stand-activity"></div>
+            <p class="mini-chart-label">Today by hour</p>
+            <div class="hourly-chart hourly-mini" id="stand-hourly-chart"></div>
+          </section>
+
+          <section class="card">
+            <h2>Latest Photo</h2>
+            <div id="latest-photo"></div>
+          </section>
+
+          <section class="card">
+            <h2>Live Camera</h2>
+            <div class="camera-wrap-small">
+              <iframe
+                src="http://192.168.1.153:1984/stream.html?src=balcony&mode=webrtc"
+                allowfullscreen
+                class="camera-frame"
+              ></iframe>
+            </div>
+          </section>
+
+          <section class="card">
+            <h2>Recent activity</h2>
+            <ul class="activity-feed" id="stand-activity-feed"></ul>
+          </section>
+
+          <!-- Row 2 -->
+          <section class="card wide">
+            <h2>Interactions this week</h2>
+            <div class="daily-breakdown" id="stand-weekly-chart"></div>
+          </section>
+
+          <!-- Row 4 -->
+          <section class="card wide">
+            <h2>Weekly Summary</h2>
+            <div id="weekly-summary"></div>
+          </section>
+
+        </div>
+      </section>
+
+      <section class="tab-panel" id="tab-system" role="tabpanel" aria-labelledby="btn-system">
         <div class="grid">
           <section class="card">
             <h2>Pi Runtime Health</h2>
@@ -55,6 +108,12 @@
             <div class="queue-bar-wrap">
               <div class="queue-bar" id="queue-bar"></div>
             </div>
+          </section>
+
+          <section class="card">
+            <h2>Capture Stats <span id="capture-trend" class="trend-indicator"></span></h2>
+            <div class="stats" id="capture-stats"></div>
+            <div class="daily-breakdown" id="capture-daily"></div>
           </section>
 
           <section class="card wide">
@@ -131,6 +190,22 @@
           <section class="card wide">
             <h2>Suggested Additional View: Alerts + Incidents</h2>
             <ul class="notes" id="alerts-list"></ul>
+          </section>
+        </div>
+      </section>
+      <section class="tab-panel" id="tab-dairycam" role="tabpanel" aria-labelledby="btn-dairycam">
+        <div class="grid">
+          <section class="card">
+            <h2>Latest Capture</h2>
+            <div id="dairycam-latest"></div>
+          </section>
+          <section class="card">
+            <h2>Device Status</h2>
+            <div class="stats" id="dairycam-status"></div>
+          </section>
+          <section class="card wide">
+            <h2>Recent Captures</h2>
+            <div class="capture-grid" id="dairycam-grid"></div>
           </section>
         </div>
       </section>

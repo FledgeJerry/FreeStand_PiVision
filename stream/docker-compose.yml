@@ -1,0 +1,25 @@
+services:
+  wyze-bridge:
+    image: mrlt8/wyze-bridge:latest
+    restart: unless-stopped
+    ports:
+      - "8554:8554"   # RTSP
+      - "8189:8189/udp" # WebRTC
+      - "5000:5000"   # wyze-bridge web UI
+    env_file: .env
+    volumes:
+      - wyze-tokens:/tokens
+
+  go2rtc:
+    image: alexxit/go2rtc:latest
+    restart: unless-stopped
+    ports:
+      - "1984:1984"   # go2rtc web UI / API
+      - "8555:8555"   # WebRTC
+    volumes:
+      - ./go2rtc.yaml:/config/go2rtc.yaml:ro
+    depends_on:
+      - wyze-bridge
+
+volumes:
+  wyze-tokens:

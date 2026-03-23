@@ -140,6 +140,22 @@ h1 {
   padding: 1rem;
 }
 
+.stand-grid {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+@media (max-width: 1100px) {
+  .stand-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .stand-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .card {
   background: var(--card);
   border: 1px solid var(--border);
@@ -321,4 +337,408 @@ td {
   margin: 0.35rem 0 0;
   color: var(--muted);
   font-size: 0.9rem;
+}
+
+.trend-indicator {
+  font-size: 0.75rem;
+  font-weight: normal;
+  color: var(--muted);
+  margin-left: 0.5rem;
+}
+
+.trend-indicator.trend-up {
+  color: var(--good);
+}
+
+.trend-indicator.trend-down {
+  color: var(--bad);
+}
+
+.daily-breakdown {
+  margin-top: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.daily-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+}
+
+.daily-label {
+  width: 7rem;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
+.daily-bar-wrap {
+  flex: 1;
+  background: #0b0f14;
+  border-radius: 999px;
+  height: 8px;
+  overflow: hidden;
+}
+
+.daily-bar {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+
+.daily-bar-stacked {
+  height: 100%;
+  display: flex;
+  border-radius: 999px;
+  overflow: hidden;
+  transition: width 0.3s ease;
+}
+
+.seg {
+  height: 100%;
+}
+
+.seg.night      { background: #1e3a5f; }
+.seg.morning    { background: #d29922; }
+.seg.afternoon  { background: #3fb950; }
+.seg.evening    { background: #8b5cf6; }
+
+.daily-legend {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.legend-dot.night     { background: #1e3a5f; }
+.legend-dot.morning   { background: #d29922; }
+.legend-dot.afternoon { background: #3fb950; }
+.legend-dot.evening   { background: #8b5cf6; }
+
+.daily-count {
+  width: 2.5rem;
+  text-align: right;
+  color: var(--text);
+  flex-shrink: 0;
+}
+
+/* Stand Overview */
+.stand-status-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.stand-status-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.stand-status-pill {
+  display: inline-block;
+  padding: 0.4rem 1rem;
+  border-radius: 999px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  width: fit-content;
+}
+
+.stand-status-pill.status-good {
+  background: rgba(63, 185, 80, 0.15);
+  border-color: var(--good);
+  color: var(--good);
+}
+
+.stand-status-pill.status-warn {
+  background: rgba(210, 153, 34, 0.15);
+  border-color: var(--warn);
+  color: #f2cc60;
+}
+
+.stand-status-pill.status-neutral {
+  background: rgba(88, 166, 255, 0.1);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.stand-status-meta {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.food-items {
+  font-size: 0.8rem;
+  color: var(--text);
+}
+
+.stand-status-pill.status-bad {
+  background: rgba(248, 81, 73, 0.15);
+  border-color: var(--bad);
+  color: var(--bad);
+}
+
+/* Hourly chart */
+.mini-chart-label {
+  font-size: 0.72rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 10px 0 2px;
+}
+
+.hourly-mini {
+  height: 60px;
+  margin-top: 0;
+  padding-bottom: 1rem;
+}
+
+.hourly-mini .hourly-col:not(:nth-child(6n+1)) .hourly-label {
+  display: none;
+}
+
+.hourly-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 80px;
+  padding-bottom: 1.25rem;
+  position: relative;
+}
+
+.hourly-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  height: 100%;
+}
+
+.hourly-bar-wrap {
+  flex: 1;
+  display: flex;
+  align-items: flex-end;
+  width: 100%;
+}
+
+.hourly-bar {
+  width: 100%;
+  background: rgba(88, 166, 255, 0.4);
+  border-top: 2px solid var(--accent);
+  border-radius: 2px 2px 0 0;
+  min-height: 2px;
+  transition: height 0.3s ease;
+}
+
+.hourly-label {
+  font-size: 0.6rem;
+  color: var(--muted);
+  margin-top: 0.2rem;
+  text-align: center;
+}
+
+/* Recent Photos */
+.photo-strip {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+}
+
+.photo-thumb {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.photo-thumb img {
+  width: 180px;
+  height: 135px;
+  object-fit: cover;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  background: #000;
+}
+
+.photo-thumb .photo-time {
+  font-size: 0.7rem;
+  color: var(--muted);
+  text-align: center;
+}
+
+/* Weekly summary */
+.weekly-summary-grid {
+  display: flex;
+  gap: 2rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.summary-stat .label {
+  font-size: 0.75rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.summary-stat .value {
+  font-size: 1.6rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.summary-trend {
+  font-size: 0.9rem;
+  color: var(--muted);
+  margin-left: auto;
+}
+
+.summary-trend.trend-up   { color: var(--good); }
+.summary-trend.trend-down { color: var(--bad); }
+
+/* Latest photo */
+#latest-photo img {
+  width: 100%;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  object-fit: cover;
+}
+
+#latest-photo .photo-time {
+  font-size: 0.75rem;
+  color: var(--muted);
+  display: block;
+  margin-top: 4px;
+}
+
+.stand-activity-mini {
+  margin-top: 12px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.stand-activity-mini .stat {
+  flex: 1;
+  min-width: 60px;
+}
+
+/* Dairy cam capture grid */
+.capture-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.capture-thumb {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.capture-thumb img {
+  width: 180px;
+  height: 135px;
+  object-fit: cover;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  background: #000;
+}
+
+.capture-thumb .photo-time {
+  font-size: 0.7rem;
+  color: var(--muted);
+  text-align: center;
+}
+
+/* Camera */
+.camera-wrap-small {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #000;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.camera-wrap {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #000;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.camera-frame {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+/* Activity feed */
+.activity-feed {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.activity-item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.9rem;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.activity-item:last-child {
+  border-bottom: none;
+}
+
+.activity-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.dot-interaction {
+  background: var(--accent);
+}
+
+.dot-stock {
+  background: var(--good);
+}
+
+.activity-label {
+  flex: 1;
+}
+
+.activity-time {
+  color: var(--muted);
+  font-size: 0.8rem;
+  white-space: nowrap;
 }
