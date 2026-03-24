@@ -267,7 +267,7 @@ def _collect_stand_metrics(conn: sqlite3.Connection) -> dict:
     ).fetchone()["cnt"]
 
     last_stock = conn.execute(
-        "SELECT event_ts, note FROM events WHERE event_type='stock_changed' ORDER BY event_ts DESC LIMIT 1",
+        "SELECT event_ts, note FROM events WHERE event_type='stock_changed' AND device_id='pi-camera' ORDER BY event_ts DESC LIMIT 1",
     ).fetchone()
 
     last_interaction = conn.execute(
@@ -696,17 +696,32 @@ class PiVisionHandler(BaseHTTPRequestHandler):
         if limit < 1:
             self._json(HTTPStatus.BAD_REQUEST, {"ok": False, "error": "limit must be positive"})
             return
+
+        device_id = params.get("device_id", [None])[0]
+        event_type = params.get("event_type", [None])[0]
+
+        filters = []
+        args = []
+        if device_id:
+            filters.append("e.device_id = ?")
+            args.append(device_id)
+        if event_type:
+            filters.append("e.event_type = ?")
+            args.append(event_type)
+        where = ("WHERE " + " AND ".join(filters)) if filters else ""
+
         with connect_db() as conn:
             rows = conn.execute(
-                """
+                f"""
                 SELECT e.id, e.device_id, e.event_type, e.event_ts, e.note, e.confidence,
                        c.storage_uri, c.width, c.height, c.capture_ts
                 FROM events e
                 LEFT JOIN captures c ON c.id = e.capture_id
+                {where}
                 ORDER BY e.event_ts DESC
                 LIMIT ?
                 """,
-                (limit,),
+                (*args, limit),
             ).fetchall()
 
         events = []

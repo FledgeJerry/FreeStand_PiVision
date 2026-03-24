@@ -1,7 +1,7 @@
 const _isLocal = window.location.protocol === "file:";
 const API_BASE = _isLocal ? "http://192.168.1.153:8080/api/v1" : "/api/v1";
 const STATIC_BASE = _isLocal ? "http://192.168.1.153:8080" : "";
-const REFRESH_INTERVAL_MS = 5000;
+const REFRESH_INTERVAL_MS = 30000;
 
 function createEmptySeries() {
   return Array.from({ length: 12 }, () => 0);
@@ -47,6 +47,7 @@ function createEmptyDashboardData() {
     stand: null,
     recentCaptures: [],
     dairyCamCaptures: [],
+    dairyInventoryEvents: [],
   };
 }
 
@@ -377,10 +378,10 @@ function renderRecentPhotos(captures) {
     <span class="photo-time">${formatLocalTime(latest.capture_ts)}</span>`;
 }
 
-function renderDairyCam(captures, devices) {
+function renderDairyCam(captures, devices, events) {
   const latest = el("#dairycam-latest");
-  const grid = el("#dairycam-grid");
   const status = el("#dairycam-status");
+  const inventory = el("#dairycam-inventory");
 
   const device = (devices ?? []).find(d => d.device_id === "dairy-cam");
   if (status) {
@@ -402,12 +403,18 @@ function renderDairyCam(captures, devices) {
     }
   }
 
-  if (grid) {
-    grid.innerHTML = captures.slice(1).map(c => `
-      <div class="capture-thumb">
-        <img src="${STATIC_BASE}${c.static_url}" alt="Capture ${c.id}" loading="lazy">
-        <span class="photo-time">${formatLocalTime(c.capture_ts)}</span>
-      </div>`).join("");
+  if (inventory) {
+    const stockEvents = (events ?? []).filter(e => e.event_type === "stock_changed" && e.device_id === "dairy-cam").slice(0, 5);
+    if (!stockEvents.length) {
+      inventory.innerHTML = `<p class="empty-state">No inventory notes recorded yet.</p>`;
+    } else {
+      inventory.innerHTML = `<ul class="activity-feed">${stockEvents.map(e => `
+        <li class="activity-item">
+          <span class="activity-dot dot-stock"></span>
+          <span class="activity-label">${e.note ?? "Stock updated"}</span>
+          <span class="activity-time">${formatLocalTime(e.event_ts)}</span>
+        </li>`).join("")}</ul>`;
+    }
   }
 }
 
@@ -570,7 +577,7 @@ async function refreshData() {
     // Add timestamp to bypass caching
     const timestamp = Date.now();
     
-    const [systemResp, ingestResp, queueResp, databaseResp, eventsResp, devicesResp, capturesDailyResp, standResp, capturesResp, dairyCamResp] = await Promise.all([
+    const [systemResp, ingestResp, queueResp, databaseResp, eventsResp, devicesResp, capturesDailyResp, standResp, capturesResp, dairyCamResp, dairyInventoryResp] = await Promise.all([
       fetchJsonWithFallback(`${API_BASE}/admin/metrics/system?t=${timestamp}`, {cpu: null, memory: null, diskRemainingGb: null, tempC: null, uptime: "—"}),
       fetchJsonWithFallback(`${API_BASE}/admin/metrics/ingest?t=${timestamp}`, {success_60m: 0, failure_60m: 0, avg_latency_ms: 0, series: []}),
       fetchJsonWithFallback(`${API_BASE}/admin/metrics/queue?t=${timestamp}`, {depth: 0, queue: {}}),
@@ -581,6 +588,7 @@ async function refreshData() {
       fetchJsonWithFallback(`${API_BASE}/admin/metrics/stand?t=${timestamp}`, {}),
       fetchJsonWithFallback(`${API_BASE}/admin/captures?limit=5&device_id=pi-camera&t=${timestamp}`, {captures: []}),
       fetchJsonWithFallback(`${API_BASE}/admin/captures?limit=20&device_id=dairy-cam&t=${timestamp}`, {captures: []}),
+      fetchJsonWithFallback(`${API_BASE}/admin/events?limit=10&device_id=dairy-cam&event_type=stock_changed&t=${timestamp}`, {events: []}),
     ]);
     
     console.log(`Refreshed data: ${eventsResp.events.length} events, ${databaseResp.captures} captures`);
@@ -627,6 +635,7 @@ async function refreshData() {
     dashboardData.stand = standResp.ok ? standResp : null;
     dashboardData.recentCaptures = capturesResp.captures ?? [];
     dashboardData.dairyCamCaptures = dairyCamResp.captures ?? [];
+    dashboardData.dairyInventoryEvents = dairyInventoryResp.events ?? [];
     dashboardData.alerts = buildAlerts(dashboardData);
     el("#last-updated").textContent = new Date().toLocaleTimeString();
   } catch (error) {
@@ -669,7 +678,7 @@ function render() {
   renderDevices(dashboardData.devices);
   renderEventGallery(dashboardData.events);
   renderAlerts(dashboardData.alerts);
-  renderDairyCam(dashboardData.dairyCamCaptures, dashboardData.devices);
+  renderDairyCam(dashboardData.dairyCamCaptures, dashboardData.devices, dashboardData.dairyInventoryEvents);
   setOverallStatus(dashboardData);
   } catch (error) {
     console.error("Render error:", error);

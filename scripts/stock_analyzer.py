@@ -14,7 +14,7 @@ from google import genai
 from google.genai import types
 from PIL import Image
 
-PROMPT = """You are monitoring a free community food stand. Analyze this image and respond ONLY with a JSON object in this exact format:
+PROMPT = """You are monitoring a food storage area. Analyze this image and respond ONLY with a JSON object in this exact format:
 {
   "food_present": true or false,
   "stock_level": "empty" or "low" or "half" or "full",
@@ -25,7 +25,7 @@ PROMPT = """You are monitoring a free community food stand. Analyze this image a
 Guidelines:
 - food_present: true if any food is visible
 - stock_level: empty=nothing there, low=less than 25% full, half=25-75% full, full=over 75% full
-- food_items: list what types of food you can see (e.g. "bread", "canned goods", "produce")
+- food_items: list what types of food you can see (e.g. "milk", "eggs", "butter", "bread", "canned goods")
 - summary: brief human-readable description for a dashboard
 
 Respond with JSON only, no other text."""
@@ -35,8 +35,8 @@ def iso_now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
-def get_latest_image(staging_dir: Path) -> Path | None:
-    images = sorted(staging_dir.glob("pi-camera-*.jpg"), key=lambda p: p.stat().st_mtime, reverse=True)
+def get_latest_image(staging_dir: Path, device_id: str) -> Path | None:
+    images = sorted(staging_dir.glob(f"{device_id}-*.jpg"), key=lambda p: p.stat().st_mtime, reverse=True)
     return images[0] if images else None
 
 
@@ -92,7 +92,7 @@ def main() -> None:
 
     while True:
         try:
-            image_path = get_latest_image(args.staging_dir)
+            image_path = get_latest_image(args.staging_dir, args.device_id)
             if not image_path:
                 print("[analyzer] No images found in staging dir")
             else:

@@ -23,18 +23,18 @@
       <div class="refresh-meta">Last updated: <span id="last-updated">never</span></div>
       <label class="refresh-toggle">
         <input id="auto-refresh" type="checkbox" checked />
-        Auto-refresh every 5s
+        Auto-refresh every 30s
       </label>
     </section>
 
     <nav class="tabs" role="tablist" aria-label="Dashboard views">
       <button class="tab active" role="tab" aria-selected="true" aria-controls="tab-stand" id="btn-stand" data-tab="stand">Stand Overview</button>
+      <button class="tab" role="tab" aria-selected="false" aria-controls="tab-dairycam" id="btn-dairycam" data-tab="dairycam">Dairy Cam</button>
       <button class="tab" role="tab" aria-selected="false" aria-controls="tab-system" id="btn-system" data-tab="system">System</button>
       <button class="tab" role="tab" aria-selected="false" aria-controls="tab-database" id="btn-database" data-tab="database">Database</button>
       <button class="tab" role="tab" aria-selected="false" aria-controls="tab-events" id="btn-events" data-tab="events">Events</button>
       <button class="tab" role="tab" aria-selected="false" aria-controls="tab-devices" id="btn-devices" data-tab="devices">Devices</button>
       <button class="tab" role="tab" aria-selected="false" aria-controls="tab-alerts" id="btn-alerts" data-tab="alerts">Alerts</button>
-      <button class="tab" role="tab" aria-selected="false" aria-controls="tab-dairycam" id="btn-dairycam" data-tab="dairycam">Dairy Cam</button>
     </nav>
 
     <main>
@@ -194,7 +194,7 @@
         </div>
       </section>
       <section class="tab-panel" id="tab-dairycam" role="tabpanel" aria-labelledby="btn-dairycam">
-        <div class="grid">
+        <div class="grid stand-grid">
           <section class="card">
             <h2>Latest Capture</h2>
             <div id="dairycam-latest"></div>
@@ -204,8 +204,8 @@
             <div class="stats" id="dairycam-status"></div>
           </section>
           <section class="card wide">
-            <h2>Recent Captures</h2>
-            <div class="capture-grid" id="dairycam-grid"></div>
+            <h2>Dairy Inventory</h2>
+            <div id="dairycam-inventory"></div>
           </section>
         </div>
       </section>
