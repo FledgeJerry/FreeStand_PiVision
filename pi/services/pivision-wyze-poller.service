@@ -1,0 +1,31 @@
+[Unit]
+Description=PiVision Wyze event poller (person detection)
+After=network.target pivision-backend.service
+Wants=pivision-backend.service
+
+[Service]
+Type=simple
+User=pivision
+WorkingDirectory=/home/pivision/PiVision
+EnvironmentFile=/home/pivision/PiVision/.env.services
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/home/pivision/PiVision/.venv/bin/python3 -u scripts/wyze_event_poller.py \
+    --email ${WYZE_EMAIL} \
+    --password ${WYZE_PASSWORD} \
+    --key-id ${WYZE_KEY_ID} \
+    --api-key ${WYZE_API_KEY} \
+    --api-base http://localhost:8080/api/v1 \
+    --device-id balcony \
+    --mac ${WYZE_MAC}
+Restart=always
+RestartSec=10
+StartLimitIntervalSec=120
+StartLimitBurst=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=pivision-wyze-poller
+PrivateTmp=true
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

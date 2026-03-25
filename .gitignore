@@ -5,6 +5,7 @@ backend/data/
 .env.deploy
 env.deploy.example
 stream/.env
+.env.services
 .claude/
 *.db
 *.db-shm

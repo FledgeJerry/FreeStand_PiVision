@@ -1,0 +1,22 @@
+[Unit]
+Description=PiVision API backend
+After=network.target
+
+[Service]
+Type=simple
+User=pivision
+WorkingDirectory=/home/pivision/PiVision
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/home/pivision/PiVision/.venv/bin/python3 backend/server.py
+Restart=always
+RestartSec=3
+StartLimitIntervalSec=60
+StartLimitBurst=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=pivision-backend
+PrivateTmp=true
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

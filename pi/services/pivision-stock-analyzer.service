@@ -1,0 +1,27 @@
+[Unit]
+Description=PiVision stock analyzer - pi-camera (free stand)
+After=network.target pivision-backend.service
+Wants=pivision-backend.service
+
+[Service]
+Type=simple
+User=pivision
+WorkingDirectory=/home/pivision/PiVision
+EnvironmentFile=/home/pivision/PiVision/.env.services
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/home/pivision/PiVision/.venv/bin/python3 -u scripts/stock_analyzer.py \
+    --api-key ${GOOGLE_API_KEY} \
+    --device-id pi-camera \
+    --interval 300
+Restart=always
+RestartSec=10
+StartLimitIntervalSec=120
+StartLimitBurst=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=pivision-stock-analyzer
+PrivateTmp=true
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target
