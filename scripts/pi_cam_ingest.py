@@ -96,7 +96,7 @@ def main() -> None:
     parser.add_argument("--device-id", default="pi-camera", help="Device id for ingest payload.")
     parser.add_argument("--api-base", default="http://localhost:8080/api/v1", help="Ingest API base URL.")
     parser.add_argument("--device-key", default="dev-key", help="X-DEVICE-KEY header value.")
-    parser.add_argument("--capture-interval", type=float, default=1.0, help="Seconds between frames.")
+    parser.add_argument("--capture-interval", type=float, default=180.0, help="Seconds between frames.")
     parser.add_argument("--seq-file", type=Path, default=Path("backend/data/pi-camera.seq"), help="Sequence file path.")
     parser.add_argument("--resolution", type=str, default="640x480", help="Resolution WIDTHxHEIGHT.")
     parser.add_argument("--jpeg-quality", type=int, default=70, help="JPEG quality (1-100).")
