@@ -89,6 +89,8 @@ def main() -> None:
     print(f"[analyzer] Starting stock analyzer, interval={args.interval}s")
 
     last_stock_level = None
+    last_event_time = 0.0
+    FORCE_EVENT_INTERVAL = 1800  # always post at least every 30 min
 
     while True:
         try:
@@ -101,9 +103,16 @@ def main() -> None:
                 print(f"[analyzer] Result: {analysis}")
 
                 current_level = analysis.get("stock_level")
-                if current_level != last_stock_level:
+                time_since_event = time.time() - last_event_time
+                level_changed = current_level != last_stock_level
+                overdue = time_since_event >= FORCE_EVENT_INTERVAL
+
+                if level_changed or overdue:
+                    reason = "level changed" if level_changed else "periodic update"
+                    print(f"[analyzer] Posting event ({reason})")
                     post_stock_event(session, args.api_base, args.device_id, analysis)
                     last_stock_level = current_level
+                    last_event_time = time.time()
                 else:
                     print(f"[analyzer] Stock level unchanged ({current_level}), skipping event")
 
