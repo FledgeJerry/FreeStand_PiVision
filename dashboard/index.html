@@ -38,83 +38,88 @@
 
     <main>
       <section class="tab-panel active" id="tab-stand" role="tabpanel" aria-labelledby="btn-stand">
+        <div class="zone-layout">
 
-        <!-- Free Stand -->
-        <h3 class="section-heading">Free Stand</h3>
-        <div class="grid stand-grid">
-          <section class="card stand-status-card">
-            <h2>Stand Status</h2>
-            <div class="stand-status-body">
-              <div class="stand-status-pill" id="stand-status-pill">Unknown</div>
-              <div class="stand-status-meta" id="stand-status-meta"></div>
-            </div>
-            <div class="stats stand-activity-mini" id="stand-activity"></div>
-            <p class="mini-chart-label">Today by hour</p>
-            <div class="hourly-chart hourly-mini" id="stand-hourly-chart"></div>
-          </section>
+          <!-- Free Stand Column -->
+          <div class="zone-col">
+            <h3 class="zone-heading">Free Stand</h3>
 
-          <section class="card">
-            <h2>Latest Photo</h2>
-            <div id="latest-photo"></div>
-          </section>
+            <section class="card stand-status-card">
+              <h2>Stand Status</h2>
+              <div class="stand-status-body">
+                <div class="stand-status-pill" id="stand-status-pill">Unknown</div>
+                <div class="stand-status-meta" id="stand-status-meta"></div>
+              </div>
+              <div class="stats stand-activity-mini" id="stand-activity"></div>
+              <p class="mini-chart-label">Today by hour</p>
+              <div class="hourly-chart hourly-mini" id="stand-hourly-chart"></div>
+            </section>
 
-          <section class="card">
-            <h2>Live Camera</h2>
-            <div class="camera-wrap-small">
-              <iframe
-                src="https://stream.thefledge.com/stream.html?src=balcony&mode=mse"
-                allowfullscreen
-                class="camera-frame"
-              ></iframe>
-            </div>
-          </section>
+            <section class="card">
+              <h2>Latest Photo</h2>
+              <div id="latest-photo"></div>
+            </section>
 
-          <section class="card">
-            <h2>Recent Activity</h2>
-            <ul class="activity-feed" id="stand-activity-feed"></ul>
-          </section>
+            <section class="card">
+              <h2>Live Camera</h2>
+              <div class="camera-wrap-small">
+                <iframe
+                  src="https://stream.thefledge.com/stream.html?src=balcony&mode=mse"
+                  allowfullscreen
+                  class="camera-frame"
+                ></iframe>
+              </div>
+            </section>
 
-          <section class="card wide">
-            <h2>Interactions this week</h2>
-            <div class="daily-breakdown" id="stand-weekly-chart"></div>
-          </section>
+            <section class="card">
+              <h2>Recent Activity</h2>
+              <ul class="activity-feed" id="stand-activity-feed"></ul>
+            </section>
 
-          <section class="card wide">
-            <h2>Weekly Summary</h2>
-            <div id="weekly-summary"></div>
-          </section>
+            <section class="card">
+              <h2>Interactions this week</h2>
+              <div class="daily-breakdown" id="stand-weekly-chart"></div>
+            </section>
+
+            <section class="card">
+              <h2>Weekly Summary</h2>
+              <div id="weekly-summary"></div>
+            </section>
+          </div>
+
+          <!-- Dairy Cooler Column -->
+          <div class="zone-col">
+            <h3 class="zone-heading">Dairy Cooler</h3>
+
+            <section class="card">
+              <h2>Latest Capture</h2>
+              <div id="dairycam-latest"></div>
+            </section>
+
+            <section class="card">
+              <h2>Device Status</h2>
+              <div class="stats" id="dairycam-status"></div>
+            </section>
+
+            <section class="card">
+              <h2>Dairy Inventory</h2>
+              <div id="dairycam-inventory"></div>
+            </section>
+          </div>
+
+          <!-- Pantry Shelves Column -->
+          <div class="zone-col">
+            <h3 class="zone-heading">Pantry Shelves</h3>
+
+            <section class="card">
+              <div class="placeholder-panel">
+                <p class="placeholder-title">Coming Soon</p>
+                <p class="placeholder-sub">Camera and inventory tracking for the pantry shelves will appear here.</p>
+              </div>
+            </section>
+          </div>
+
         </div>
-
-        <!-- Dairy Cooler -->
-        <h3 class="section-heading">Dairy Cooler</h3>
-        <div class="grid stand-grid">
-          <section class="card">
-            <h2>Latest Capture</h2>
-            <div id="dairycam-latest"></div>
-          </section>
-
-          <section class="card">
-            <h2>Device Status</h2>
-            <div class="stats" id="dairycam-status"></div>
-          </section>
-
-          <section class="card wide">
-            <h2>Dairy Inventory</h2>
-            <div id="dairycam-inventory"></div>
-          </section>
-        </div>
-
-        <!-- Pantry Shelves -->
-        <h3 class="section-heading">Pantry Shelves</h3>
-        <div class="grid stand-grid">
-          <section class="card wide">
-            <div class="placeholder-panel">
-              <p class="placeholder-title">Pantry Shelves — Coming Soon</p>
-              <p class="placeholder-sub">Camera and inventory tracking for the pantry shelves will appear here.</p>
-            </div>
-          </section>
-        </div>
-
       </section>
 
       <section class="tab-panel" id="tab-system" role="tabpanel" aria-labelledby="btn-system">
