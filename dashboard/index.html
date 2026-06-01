@@ -39,8 +39,8 @@
     <main>
       <section class="tab-panel active" id="tab-stand" role="tabpanel" aria-labelledby="btn-stand">
 
-        <!-- Summary strip -->
-        <div class="summary-strip">
+        <!-- Top summary: 3 columns, nothing full-width -->
+        <div class="three-col">
           <section class="card">
             <h2>Interactions this week</h2>
             <div class="daily-breakdown" id="stand-weekly-chart"></div>
@@ -56,17 +56,23 @@
               ></iframe>
             </div>
           </section>
+
+          <section class="card">
+            <h2>This Week</h2>
+            <div id="weekly-summary"></div>
+          </section>
         </div>
 
-        <!-- Zone columns -->
-        <div class="zone-layout">
+        <!-- Zone columns: photo first, then status -->
+        <div class="three-col zone-layout">
 
-          <!-- Free Stand Column -->
+          <!-- Free Stand -->
           <div class="zone-col">
             <h3 class="zone-heading">Free Stand</h3>
-
-            <section class="card stand-status-card">
-              <h2>Stand Status</h2>
+            <section class="card">
+              <div id="latest-photo"></div>
+            </section>
+            <section class="card">
               <div class="stand-status-body">
                 <div class="stand-status-pill" id="stand-status-pill">Unknown</div>
                 <div class="stand-status-meta" id="stand-status-meta"></div>
@@ -75,51 +81,38 @@
               <p class="mini-chart-label">Today by hour</p>
               <div class="hourly-chart hourly-mini" id="stand-hourly-chart"></div>
             </section>
-
-            <section class="card">
-              <h2>Latest Photo</h2>
-              <div id="latest-photo"></div>
-            </section>
-
-            <section class="card">
-              <h2>This Week</h2>
-              <div id="weekly-summary"></div>
-            </section>
-
             <section class="card">
               <h2>Recent Activity</h2>
               <ul class="activity-feed" id="stand-activity-feed"></ul>
             </section>
           </div>
 
-          <!-- Dairy Cooler Column -->
+          <!-- Dairy Cooler -->
           <div class="zone-col">
             <h3 class="zone-heading">Dairy Cooler</h3>
-
             <section class="card">
-              <h2>Latest Capture</h2>
               <div id="dairycam-latest"></div>
             </section>
-
             <section class="card">
-              <h2>Device Status</h2>
               <div class="stats" id="dairycam-status"></div>
             </section>
-
             <section class="card">
-              <h2>Dairy Inventory</h2>
+              <h2>Inventory</h2>
               <div id="dairycam-inventory"></div>
             </section>
           </div>
 
-          <!-- Pantry Shelves Column -->
+          <!-- Pantry Shelves -->
           <div class="zone-col">
             <h3 class="zone-heading">Pantry Shelves</h3>
-
+            <section class="card zone-photo-placeholder">
+              <div class="placeholder-panel">
+                <p class="placeholder-title">Camera Coming Soon</p>
+              </div>
+            </section>
             <section class="card">
               <div class="placeholder-panel">
-                <p class="placeholder-title">Coming Soon</p>
-                <p class="placeholder-sub">Camera and inventory tracking for the pantry shelves will appear here.</p>
+                <p class="placeholder-sub">Status and inventory tracking will appear here.</p>
               </div>
             </section>
           </div>
