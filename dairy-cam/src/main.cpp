@@ -62,7 +62,10 @@ void initCamera() {
     if (err != ESP_OK) {
         Serial.printf("[camera] init failed: 0x%x\n", err);
     } else {
-        Serial.println("[camera] ready");
+        sensor_t *s = esp_camera_sensor_get();
+        s->set_vflip(s, 1);
+        s->set_hmirror(s, 1);
+        Serial.println("[camera] ready (180° rotation applied)");
     }
 }
 
