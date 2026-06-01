@@ -28,8 +28,7 @@
     </section>
 
     <nav class="tabs" role="tablist" aria-label="Dashboard views">
-      <button class="tab active" role="tab" aria-selected="true" aria-controls="tab-stand" id="btn-stand" data-tab="stand">Stand Overview</button>
-      <button class="tab" role="tab" aria-selected="false" aria-controls="tab-dairycam" id="btn-dairycam" data-tab="dairycam">Dairy Cam</button>
+      <button class="tab active" role="tab" aria-selected="true" aria-controls="tab-stand" id="btn-stand" data-tab="stand">Free Stand Overview</button>
       <button class="tab" role="tab" aria-selected="false" aria-controls="tab-system" id="btn-system" data-tab="system">System</button>
       <button class="tab" role="tab" aria-selected="false" aria-controls="tab-database" id="btn-database" data-tab="database">Database</button>
       <button class="tab" role="tab" aria-selected="false" aria-controls="tab-events" id="btn-events" data-tab="events">Events</button>
@@ -39,9 +38,10 @@
 
     <main>
       <section class="tab-panel active" id="tab-stand" role="tabpanel" aria-labelledby="btn-stand">
-        <div class="grid stand-grid">
 
-          <!-- Row 1: at-a-glance -->
+        <!-- Free Stand -->
+        <h3 class="section-heading">Free Stand</h3>
+        <div class="grid stand-grid">
           <section class="card stand-status-card">
             <h2>Stand Status</h2>
             <div class="stand-status-body">
@@ -70,23 +70,51 @@
           </section>
 
           <section class="card">
-            <h2>Recent activity</h2>
+            <h2>Recent Activity</h2>
             <ul class="activity-feed" id="stand-activity-feed"></ul>
           </section>
 
-          <!-- Row 2 -->
           <section class="card wide">
             <h2>Interactions this week</h2>
             <div class="daily-breakdown" id="stand-weekly-chart"></div>
           </section>
 
-          <!-- Row 4 -->
           <section class="card wide">
             <h2>Weekly Summary</h2>
             <div id="weekly-summary"></div>
           </section>
-
         </div>
+
+        <!-- Dairy Cooler -->
+        <h3 class="section-heading">Dairy Cooler</h3>
+        <div class="grid stand-grid">
+          <section class="card">
+            <h2>Latest Capture</h2>
+            <div id="dairycam-latest"></div>
+          </section>
+
+          <section class="card">
+            <h2>Device Status</h2>
+            <div class="stats" id="dairycam-status"></div>
+          </section>
+
+          <section class="card wide">
+            <h2>Dairy Inventory</h2>
+            <div id="dairycam-inventory"></div>
+          </section>
+        </div>
+
+        <!-- Pantry Shelves -->
+        <h3 class="section-heading">Pantry Shelves</h3>
+        <div class="grid stand-grid">
+          <section class="card wide">
+            <div class="placeholder-panel">
+              <p class="placeholder-title">Pantry Shelves — Coming Soon</p>
+              <p class="placeholder-sub">Camera and inventory tracking for the pantry shelves will appear here.</p>
+            </div>
+          </section>
+        </div>
+
       </section>
 
       <section class="tab-panel" id="tab-system" role="tabpanel" aria-labelledby="btn-system">
@@ -188,24 +216,8 @@
       <section class="tab-panel" id="tab-alerts" role="tabpanel" aria-labelledby="btn-alerts">
         <div class="grid">
           <section class="card wide">
-            <h2>Suggested Additional View: Alerts + Incidents</h2>
+            <h2>Alerts + Incidents</h2>
             <ul class="notes" id="alerts-list"></ul>
-          </section>
-        </div>
-      </section>
-      <section class="tab-panel" id="tab-dairycam" role="tabpanel" aria-labelledby="btn-dairycam">
-        <div class="grid stand-grid">
-          <section class="card">
-            <h2>Latest Capture</h2>
-            <div id="dairycam-latest"></div>
-          </section>
-          <section class="card">
-            <h2>Device Status</h2>
-            <div class="stats" id="dairycam-status"></div>
-          </section>
-          <section class="card wide">
-            <h2>Dairy Inventory</h2>
-            <div id="dairycam-inventory"></div>
           </section>
         </div>
       </section>

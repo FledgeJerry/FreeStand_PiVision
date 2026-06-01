@@ -156,6 +156,32 @@ h1 {
   }
 }
 
+.section-heading {
+  margin: 1.5rem 1rem 0;
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0.4rem;
+}
+
+.placeholder-panel {
+  padding: 2rem;
+  text-align: center;
+  color: var(--muted);
+}
+
+.placeholder-title {
+  font-weight: 600;
+  margin-bottom: 0.4rem;
+}
+
+.placeholder-sub {
+  font-size: 0.875rem;
+}
+
 .card {
   background: var(--card);
   border: 1px solid var(--border);
