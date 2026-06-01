@@ -3,9 +3,12 @@
 #include <ArduinoOTA.h>
 #include <HTTPClient.h>
 #include <esp_camera.h>
+#include <esp_task_wdt.h>
 #include <mbedtls/base64.h>
 #include <time.h>
 #include "config.h"
+
+#define WDT_TIMEOUT_S 60
 
 // Camera pins for Freenove ESP32-S3 WROOM
 #define PWDN_GPIO_NUM  -1
@@ -66,9 +69,16 @@ void initCamera() {
 void connectWiFi() {
     WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
     Serial.print("[wifi] connecting");
-    while (WiFi.status() != WL_CONNECTED) {
+    int attempts = 0;
+    while (WiFi.status() != WL_CONNECTED && attempts < 40) {
         delay(500);
         Serial.print(".");
+        attempts++;
+        esp_task_wdt_reset();
+    }
+    if (WiFi.status() != WL_CONNECTED) {
+        Serial.println("\n[wifi] timeout — rebooting");
+        esp_restart();
     }
     Serial.printf("\n[wifi] connected: %s\n", WiFi.localIP().toString().c_str());
 }
@@ -140,18 +150,24 @@ void setup() {
     seq = esp_random();
     Serial.println("\n[boot] dairy-cam starting");
 
+    esp_task_wdt_init(WDT_TIMEOUT_S, true);
+    esp_task_wdt_add(NULL);
+
     connectWiFi();
 
     // Sync time via NTP (needed for ISO timestamps)
     configTime(0, 0, "pool.ntp.org", "time.nist.gov");
     Serial.print("[ntp] syncing");
     time_t now = 0;
-    while (now < 1000000000) {
+    int ntp_attempts = 0;
+    while (now < 1000000000 && ntp_attempts < 20) {
         delay(500);
         Serial.print(".");
         time(&now);
+        ntp_attempts++;
+        esp_task_wdt_reset();
     }
-    Serial.println(" ok");
+    Serial.println(now >= 1000000000 ? " ok" : " timeout (continuing)");
 
     initOTA();
     initCamera();
@@ -160,6 +176,7 @@ void setup() {
 static unsigned long lastCapture = 0;
 
 void loop() {
+    esp_task_wdt_reset();
     ArduinoOTA.handle();
 
     // Reconnect WiFi if dropped
