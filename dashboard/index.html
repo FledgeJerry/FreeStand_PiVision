@@ -38,6 +38,32 @@
 
     <main>
       <section class="tab-panel active" id="tab-stand" role="tabpanel" aria-labelledby="btn-stand">
+
+        <!-- Summary strip -->
+        <div class="summary-strip">
+          <section class="card">
+            <h2>Interactions this week</h2>
+            <div class="daily-breakdown" id="stand-weekly-chart"></div>
+          </section>
+
+          <section class="card">
+            <h2>Weekly Summary</h2>
+            <div id="weekly-summary"></div>
+          </section>
+
+          <section class="card">
+            <h2>Live Camera</h2>
+            <div class="camera-wrap-small">
+              <iframe
+                src="https://stream.thefledge.com/stream.html?src=balcony&mode=mse"
+                allowfullscreen
+                class="camera-frame"
+              ></iframe>
+            </div>
+          </section>
+        </div>
+
+        <!-- Zone columns -->
         <div class="zone-layout">
 
           <!-- Free Stand Column -->
@@ -61,29 +87,8 @@
             </section>
 
             <section class="card">
-              <h2>Live Camera</h2>
-              <div class="camera-wrap-small">
-                <iframe
-                  src="https://stream.thefledge.com/stream.html?src=balcony&mode=mse"
-                  allowfullscreen
-                  class="camera-frame"
-                ></iframe>
-              </div>
-            </section>
-
-            <section class="card">
               <h2>Recent Activity</h2>
               <ul class="activity-feed" id="stand-activity-feed"></ul>
-            </section>
-
-            <section class="card">
-              <h2>Interactions this week</h2>
-              <div class="daily-breakdown" id="stand-weekly-chart"></div>
-            </section>
-
-            <section class="card">
-              <h2>Weekly Summary</h2>
-              <div id="weekly-summary"></div>
             </section>
           </div>
 
