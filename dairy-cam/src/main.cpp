@@ -109,45 +109,59 @@ String nowISO() {
 }
 
 void postFrame(camera_fb_t *fb) {
-    // Base64 encode the JPEG
-    size_t b64_len = ((fb->len + 2) / 3) * 4 + 1;
-    uint8_t *b64 = (uint8_t *)ps_malloc(b64_len);
-    if (!b64) {
-        Serial.println("[post] out of memory for base64");
-        return;
-    }
-    size_t out_len = 0;
-    mbedtls_base64_encode(b64, b64_len, &out_len, fb->buf, fb->len);
-
-    String ts = nowISO();
-
-    // Build JSON — image_b64 last to avoid copying the large string
-    String json;
-    json.reserve(out_len + 256);
-    json  = "{\"device_id\":\"" DEVICE_ID "\",";
-    json += "\"capture_ts\":\"" + ts + "\",";
-    json += "\"seq\":"          + String(seq++) + ",";
-    json += "\"width\":"        + String(fb->width) + ",";
-    json += "\"height\":"       + String(fb->height) + ",";
-    json += "\"jpeg_quality\":" + String(JPEG_QUALITY) + ",";
-    json += "\"image_b64\":\"";
-    json += (char *)b64;
-    json += "\"}";
-    free(b64);
-
     if (WiFi.status() != WL_CONNECTED) {
         Serial.println("[post] wifi down, skipping");
         return;
     }
 
+    // Base64 encode the JPEG into PSRAM
+    size_t b64_len = ((fb->len + 2) / 3) * 4 + 1;
+    char *b64 = (char *)ps_malloc(b64_len);
+    if (!b64) {
+        Serial.println("[post] out of memory for base64");
+        return;
+    }
+    size_t out_len = 0;
+    mbedtls_base64_encode((uint8_t *)b64, b64_len, &out_len, fb->buf, fb->len);
+    b64[out_len] = '\0';
+    esp_task_wdt_reset();
+
+    // Build JSON header separately, send in two parts via stream
+    char header[256];
+    snprintf(header, sizeof(header),
+        "{\"device_id\":\"" DEVICE_ID "\","
+        "\"capture_ts\":\"%s\","
+        "\"seq\":%u,"
+        "\"width\":%u,"
+        "\"height\":%u,"
+        "\"jpeg_quality\":%d,"
+        "\"image_b64\":\"",
+        nowISO().c_str(), seq++, fb->width, fb->height, JPEG_QUALITY);
+
+    // Concatenate into one PSRAM buffer to avoid HTTPClient fragmentation
+    size_t total = strlen(header) + out_len + 3; // +3 for closing "}
+    char *body = (char *)ps_malloc(total);
+    if (!body) {
+        Serial.println("[post] out of memory for body");
+        free(b64);
+        return;
+    }
+    strcpy(body, header);
+    strcat(body, b64);
+    strcat(body, "\"}");
+    free(b64);
+    esp_task_wdt_reset();
+
     HTTPClient http;
     http.begin(BACKEND_URL);
     http.addHeader("Content-Type", "application/json");
     http.addHeader("X-DEVICE-KEY", DEVICE_KEY);
-    http.setTimeout(10000);
-    int code = http.POST(json);
+    http.setTimeout(15000);
+    int code = http.POST((uint8_t *)body, strlen(body));
     Serial.printf("[post] seq=%u size=%uB http=%d\n", seq - 1, fb->len, code);
     http.end();
+    free(body);
+    esp_task_wdt_reset();
 }
 
 void setup() {
@@ -195,12 +209,15 @@ void loop() {
 
     if (millis() - lastCapture >= CAPTURE_INTERVAL_MS) {
         lastCapture = millis();
+        esp_task_wdt_reset();  // fresh window before camera capture
         camera_fb_t *fb = esp_camera_fb_get();
+        esp_task_wdt_reset();  // reset after capture regardless of outcome
         if (!fb) {
             Serial.println("[camera] capture failed");
             return;
         }
         postFrame(fb);
         esp_camera_fb_return(fb);
+        esp_task_wdt_reset();
     }
 }
