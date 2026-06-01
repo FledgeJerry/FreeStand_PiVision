@@ -89,8 +89,11 @@ void connectWiFi() {
 void initOTA() {
     ArduinoOTA.setHostname(OTA_HOSTNAME);
     ArduinoOTA.setPassword(OTA_PASSWORD);
-    ArduinoOTA.onStart([]() { Serial.println("[ota] starting"); });
-    ArduinoOTA.onEnd([]()   { Serial.println("\n[ota] done"); });
+    ArduinoOTA.onStart([]() {
+        esp_task_wdt_delete(NULL);
+        Serial.println("[ota] starting — watchdog disabled");
+    });
+    ArduinoOTA.onEnd([]() { Serial.println("\n[ota] done"); });
     ArduinoOTA.onError([](ota_error_t e) { Serial.printf("[ota] error %u\n", e); });
     ArduinoOTA.begin();
     Serial.println("[ota] ready — hostname: " OTA_HOSTNAME);
