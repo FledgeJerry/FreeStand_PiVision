@@ -704,8 +704,10 @@ td {
 }
 
 .zone-col #latest-photo img,
+.zone-col #dairycam-latest img,
 .zone-col .capture-thumb img {
-  width: 100%;
+  width: 100% !important;
+  max-width: 100%;
   height: 180px;
   object-fit: cover;
   border-radius: 4px;
