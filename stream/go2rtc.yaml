@@ -2,7 +2,7 @@ streams:
   # Stream name matches your Wyze cam name (lowercase, underscores).
   # wyze-bridge auto-names cameras from your Wyze account.
   # Check http://pi-ip:5000 after startup to confirm the exact stream name.
-  balcony: rtsp://wyze-bridge:8554/balcony
+  freestand1300a: rtsp://localhost:8554/freestand1300a
 
 api:
   listen: :1984
