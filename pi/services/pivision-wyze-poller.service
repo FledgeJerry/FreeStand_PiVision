@@ -15,7 +15,7 @@ ExecStart=/home/pivision/PiVision/.venv/bin/python3 -u scripts/wyze_event_poller
     --key-id ${WYZE_KEY_ID} \
     --api-key ${WYZE_API_KEY} \
     --api-base http://localhost:8080/api/v1 \
-    --device-id balcony \
+    --device-id freestand1300a \
     --mac ${WYZE_MAC}
 Restart=always
 RestartSec=10
