@@ -474,7 +474,7 @@ class PiVisionHandler(BaseHTTPRequestHandler):
         if parsed.path.startswith("/static/"):
             self._handle_static(parsed.path)
             return
-        if parsed.path in ("/", "/app.js", "/styles.css"):
+        if parsed.path in ("/", "/app.js", "/styles.css") or parsed.path.startswith("/app.js?") or parsed.path.startswith("/styles.css?"):
             self._handle_dashboard(parsed.path)
             return
         self._json(HTTPStatus.NOT_FOUND, {"ok": False, "error": "not found"})
