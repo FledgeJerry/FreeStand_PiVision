@@ -267,7 +267,7 @@ def _collect_stand_metrics(conn: sqlite3.Connection) -> dict:
     ).fetchone()["cnt"]
 
     last_stock = conn.execute(
-        "SELECT event_ts, note FROM events WHERE event_type='stock_changed' AND device_id='pi-camera' ORDER BY event_ts DESC LIMIT 1",
+        "SELECT event_ts, note FROM events WHERE event_type='stock_changed' AND device_id='freestand-cam' ORDER BY event_ts DESC LIMIT 1",
     ).fetchone()
 
     last_interaction = conn.execute(

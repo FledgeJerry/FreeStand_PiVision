@@ -11,7 +11,7 @@ EnvironmentFile=/home/pivision/PiVision/.env.services
 Environment=PYTHONUNBUFFERED=1
 ExecStart=/home/pivision/PiVision/.venv/bin/python3 -u scripts/stock_analyzer.py \
     --api-key ${GOOGLE_API_KEY} \
-    --device-id pi-camera \
+    --device-id freestand-cam \
     --interval 300
 Restart=always
 RestartSec=10
