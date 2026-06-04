@@ -378,6 +378,22 @@ function renderRecentPhotos(captures) {
     <span class="photo-time">${formatLocalTime(latest.capture_ts)}</span>`;
 }
 
+function renderFreestandInventory(events) {
+  const inventory = el("#freestand-inventory");
+  if (!inventory) return;
+  const stockEvents = (events ?? []).filter(e => e.event_type === "stock_changed" && e.device_id === "freestand-cam").slice(0, 5);
+  if (!stockEvents.length) {
+    inventory.innerHTML = `<p class="empty-state">No inventory notes recorded yet.</p>`;
+  } else {
+    inventory.innerHTML = `<ul class="activity-feed">${stockEvents.map(e => `
+      <li class="activity-item">
+        <span class="activity-dot dot-stock"></span>
+        <span class="activity-label">${e.note ?? "Stock updated"}</span>
+        <span class="activity-time">${formatLocalTime(e.event_ts)}</span>
+      </li>`).join("")}</ul>`;
+  }
+}
+
 function renderDairyCam(captures, devices, events) {
   const latest = el("#dairycam-latest");
   const status = el("#dairycam-status");
@@ -577,7 +593,7 @@ async function refreshData() {
     // Add timestamp to bypass caching
     const timestamp = Date.now();
     
-    const [systemResp, ingestResp, queueResp, databaseResp, eventsResp, devicesResp, capturesDailyResp, standResp, capturesResp, dairyCamResp, dairyInventoryResp] = await Promise.all([
+    const [systemResp, ingestResp, queueResp, databaseResp, eventsResp, devicesResp, capturesDailyResp, standResp, capturesResp, dairyCamResp, dairyInventoryResp, freestandInventoryResp] = await Promise.all([
       fetchJsonWithFallback(`${API_BASE}/admin/metrics/system?t=${timestamp}`, {cpu: null, memory: null, diskRemainingGb: null, tempC: null, uptime: "—"}),
       fetchJsonWithFallback(`${API_BASE}/admin/metrics/ingest?t=${timestamp}`, {success_60m: 0, failure_60m: 0, avg_latency_ms: 0, series: []}),
       fetchJsonWithFallback(`${API_BASE}/admin/metrics/queue?t=${timestamp}`, {depth: 0, queue: {}}),
@@ -589,6 +605,7 @@ async function refreshData() {
       fetchJsonWithFallback(`${API_BASE}/admin/captures?limit=5&device_id=freestand-cam&t=${timestamp}`, {captures: []}),
       fetchJsonWithFallback(`${API_BASE}/admin/captures?limit=20&device_id=dairy-cam&t=${timestamp}`, {captures: []}),
       fetchJsonWithFallback(`${API_BASE}/admin/events?limit=10&device_id=dairy-cam&event_type=stock_changed&t=${timestamp}`, {events: []}),
+      fetchJsonWithFallback(`${API_BASE}/admin/events?limit=10&device_id=freestand-cam&event_type=stock_changed&t=${timestamp}`, {events: []}),
     ]);
     
     console.log(`Refreshed data: ${eventsResp.events.length} events, ${databaseResp.captures} captures`);
@@ -636,6 +653,7 @@ async function refreshData() {
     dashboardData.recentCaptures = capturesResp.captures ?? [];
     dashboardData.dairyCamCaptures = dairyCamResp.captures ?? [];
     dashboardData.dairyInventoryEvents = dairyInventoryResp.events ?? [];
+    dashboardData.freestandInventoryEvents = freestandInventoryResp.events ?? [];
     dashboardData.alerts = buildAlerts(dashboardData);
     el("#last-updated").textContent = new Date().toLocaleTimeString();
   } catch (error) {
@@ -679,6 +697,7 @@ function render() {
   renderEventGallery(dashboardData.events);
   renderAlerts(dashboardData.alerts);
   renderDairyCam(dashboardData.dairyCamCaptures, dashboardData.devices, dashboardData.dairyInventoryEvents);
+  renderFreestandInventory(dashboardData.freestandInventoryEvents);
   setOverallStatus(dashboardData);
   } catch (error) {
     console.error("Render error:", error);
