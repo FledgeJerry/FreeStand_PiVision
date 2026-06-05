@@ -703,7 +703,6 @@ td {
   object-fit: cover;
 }
 
-.zone-col #latest-photo img,
 .zone-col #dairycam-latest img,
 .zone-col .capture-thumb img {
   width: 100% !important;
@@ -712,6 +711,16 @@ td {
   object-fit: cover;
   border-radius: 4px;
   display: block;
+}
+
+.zone-col #latest-photo img {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 4/3;
+  object-fit: contain;
+  border-radius: 4px;
+  display: block;
+  background: #000;
 }
 
 #latest-photo .photo-time {
