@@ -92,6 +92,13 @@ def main() -> None:
                 print(f"[poller] No new person events since {ms_to_iso(last_seen_ms)}")
         except Exception as exc:
             print(f"[poller] Error fetching events: {exc}")
+            if "access token" in str(exc).lower() or "2001" in str(exc):
+                print("[poller] Token expired — re-authenticating")
+                try:
+                    client = get_wyze_client(args.email, args.password, args.key_id, args.api_key)
+                    print("[poller] Re-authenticated successfully")
+                except Exception as auth_exc:
+                    print(f"[poller] Re-auth failed: {auth_exc}")
 
         time.sleep(args.poll_interval)
 
