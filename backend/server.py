@@ -32,6 +32,10 @@ _INGEST_WINDOW_MINUTES = 60
 _INGEST_BUCKET_COUNT = 12
 _INGEST_BUCKET_MINUTES = 5
 
+# Historical visits before computer vision tracking began (2021–2026)
+# 260 weeks × 7 days × 150 avg visits/day
+BASELINE_VISITS = 273_000
+
 
 
 def _parse_iso_ts(value: str | None) -> datetime | None:
@@ -257,7 +261,7 @@ def _collect_stand_metrics(conn: sqlite3.Connection) -> dict:
 
     interactions_total = conn.execute(
         "SELECT COUNT(*) as cnt FROM events WHERE event_type='interaction_detected'",
-    ).fetchone()["cnt"]
+    ).fetchone()["cnt"] + BASELINE_VISITS
 
     last_week_end = (now_eastern.date() - timedelta(days=7)).isoformat()
     last_week_start = (now_eastern.date() - timedelta(days=13)).isoformat()
